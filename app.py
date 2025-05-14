@@ -2,11 +2,12 @@
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash # type: ignore
-import sqlite3
+import sqlite3, os
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = 'tu_clave_secreta_aqui'
+# Por (usando variables de entorno):
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'clave-temporal-para-desarrollo')
 
 # Ruta principal
 @app.route('/')
@@ -63,35 +64,29 @@ init_db()
 ########################autenticacion######################
 
 # Registro de usuarios
+#inisio de sesion
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
         
-        if not username or not password:
-            flash('Username and password are required!')
-            return redirect(url_for('register'))
-        
         conn = get_db_connection()
-        existing_user = conn.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()
-        
-        if existing_user:
-            flash('Username already exists!')
-            conn.close()
+        try:
+            password_hash = generate_password_hash(password)
+            conn.execute('''
+                INSERT INTO users (username, password_hash, created_at)
+                VALUES (?, ?, ?)
+            ''', (username, password_hash, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+            conn.commit()
+        except sqlite3.IntegrityError:
+            flash('El usuario ya existe.', 'danger')
             return redirect(url_for('register'))
-
-        password_hash = generate_password_hash(password)
-        created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        finally:
+            conn.close()
         
-        conn.execute('INSERT INTO users (username, password_hash, created_at) VALUES (?, ?, ?)',
-                     (username, password_hash, created_at))
-        conn.commit()
-        conn.close()
-        
-        flash('Registration successful! Please login.')
+        flash('¡Registro exitoso! Por favor inicia sesión.', 'success')
         return redirect(url_for('login'))
-    
     return render_template('register.html')
 
 # Inicio de sesión
@@ -108,20 +103,19 @@ def login():
         if user and check_password_hash(user['password_hash'], password):
             session['user_id'] = user['id']
             session['username'] = user['username']
-            flash('Login successful!')
+            flash('¡Inicio de sesión exitoso!', 'success')
             return redirect(url_for('dashboard'))
         else:
-            flash('Invalid username or password!')
+            flash('¡Usuario o contraseña inválidos!', 'danger')
             return redirect(url_for('login'))
     
     return render_template('login.html')
-
 # Cerrar sesión
 @app.route('/logout')
 def logout():
     session.pop('user_id', None)
     session.pop('username', None)
-    flash('You have been logged out.')
+    flash('Has cerrado sesión.', 'info')
     return redirect(url_for('index'))
 
 ########################autenticacion######################
@@ -159,7 +153,7 @@ def create_task():
     conn.commit()
     conn.close()
     
-    flash('Task created successfully!')
+    flash('Tarea creada exitosamente','success')
     return redirect(url_for('dashboard'))
 
 @app.route('/complete_task/<int:task_id>')
@@ -173,20 +167,17 @@ def complete_task(task_id):
     conn.commit()
     conn.close()
     
-    flash('Task marked as completed!')
+    flash('Tarea Completa Exitosamente','success')
     return redirect(url_for('dashboard'))
 
 @app.route('/edit_task/<int:task_id>', methods=['GET', 'POST'])
 def edit_task(task_id):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-
+    
     conn = get_db_connection()
     task = conn.execute('SELECT * FROM tasks WHERE id = ? AND user_id = ?', 
                        (task_id, session['user_id'])).fetchone()
     
     if not task:
-        flash('Task not found or access denied.')
         return redirect(url_for('dashboard'))
 
     if request.method == 'POST':
@@ -201,15 +192,16 @@ def edit_task(task_id):
         conn.commit()
         conn.close()
         
-        flash('Task updated successfully!')
+        flash('Tarea completa','success')
         return redirect(url_for('dashboard'))
     
     conn.close()
-    return render_template('editar_tarea.html', task=task)
+    return render_template('edit_task.html', task=task)
 
 @app.route('/delete_task/<int:task_id>')
 def delete_task(task_id):
     if 'user_id' not in session:
+        flash('¡Debes inciar sesion para eliminar tareas!', 'danger')
         return redirect(url_for('login'))
     
     conn = get_db_connection()
@@ -218,7 +210,7 @@ def delete_task(task_id):
     conn.commit()
     conn.close()
     
-    flash('Task deleted successfully!')
+    flash('Tarea eliminada exitosamente!','success')
     return redirect(url_for('dashboard'))
 
 if __name__ == '__main__':
