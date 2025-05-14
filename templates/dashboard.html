@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Panel de Control{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">Gestión de Tareas</h1>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                <i class="bi bi-globe me-1"></i>Ver Públicas
+            </a>
+        </div>
+
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 fw-bold text-primary"><i class="bi bi-plus-circle me-1"></i>Nueva Tarea</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('create_task') }}">
+                    <div class="mb-3">
+                        <label class="form-label">Título</label>
+                        <input type="text" class="form-control" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" name="description" rows="2"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i>Guardar Tarea
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        {% if tasks %}
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 fw-bold text-primary"><i class="bi bi-list-task me-1"></i>Tus Tareas</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for task in tasks %}
+                        <div class="list-group-item d-flex justify-content-between align-items-start py-3">
+                            <div class="ms-2 me-auto">
+                                <div class="fw-bold">{{ task['title'] }}</div>
+                                <p class="mb-1 text-muted">{{ task['description'] }}</p>
+                                <small class="text-muted"><i class="bi bi-clock me-1"></i>{{ task['created_at'] }}</small>
+                            </div>
+                            <div class="btn-group">
+                                {% if not task['completed'] %}
+                                    <a href="{{ url_for('complete_task', task_id=task['id']) }}" 
+                                       class="btn btn-sm btn-success" title="Completar">
+                                        <i class="bi bi-check2">Completar</i>
+                                    </a>
+                                    <a href="{{ url_for('edit_task', task_id=task['id']) }}" 
+                                       class="btn btn-sm btn-warning" title="Editar">
+                                        <i class="bi bi-pencil">Editar</i>
+                                    </a>
+                                {% endif %}
+                                <a href="{{ url_for('delete_task', task_id=task['id']) }}" 
+                                   class="btn btn-sm btn-danger" title="Eliminar">
+                                    <i class="bi bi-trash">Eliminar</i>
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="alert alert-info shadow">
+                <i class="bi bi-info-circle me-2"></i>No tienes tareas registradas
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
