@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Editar Tarea{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="bi bi-pencil-square me-2"></i>Editar Tarea</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Título</label>
+                        <input type="text" class="form-control" name="title" 
+                               value="{{ task['title'] }}" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" name="description" 
+                                  rows="3">{{ task['description'] }}</textarea>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                            
+                            <i class="bi bi-x-circle me-1"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+
+                            <i class="bi bi-save2 me-1"></i>Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
